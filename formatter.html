@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classlist CSV Formatter</title>
+
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- PapaParse for CSV Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Font Fallbacks */
+        @font-face {
+            font-family: 'Tiro Telugu';
+            src: local('Georgia'), local('Times New Roman'), serif;
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'SF Pro';
+            src: local('-apple-system'), local('BlinkMacSystemFont'), local('Segoe UI'), local('Roboto'), sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --bg-color: #fefcef;
+            --text-main: #331010;
+            --accent-dark: #4a0d0d;
+            --accent-light: #e8e2d5;
+            --border-color: #d1c8b8;
+            --card-bg: #fdfbf7;
+            --hover-wine: #330808;
+            --input-border: #d9d0c1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        /* Centered Minimalist Modal Container */
+        .modal-container {
+            width: 100%;
+            max-width: 860px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 16px 40px rgba(51, 16, 16, 0.08);
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .modal-header {
+            text-align: center;
+        }
+
+        .modal-title {
+            font-family: 'Tiro Telugu', Georgia, serif;
+            font-size: 2.2rem;
+            color: var(--accent-dark);
+            font-weight: 400;
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-subtitle {
+            font-size: 0.9rem;
+            color: #665b55;
+        }
+
+        /* Config Grid */
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 640px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-container {
+                padding: 1.5rem;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 0.725rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #665b55;
+            text-transform: uppercase;
+        }
+
+        .marca-input {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            border: 1px solid var(--input-border);
+            border-radius: 12px;
+            background-color: #ffffff;
+            font-size: 0.875rem;
+            color: var(--accent-dark);
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .marca-input:focus {
+            border-color: var(--accent-dark);
+        }
+
+        /* File Upload Dropzone */
+        .dropzone-area {
+            border: 2px dashed #8c3232;
+            border-radius: 14px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            background-color: rgba(254, 252, 239, 0.6);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dropzone-area:hover, .dropzone-area.dragover {
+            background-color: #f5eedf;
+            border-color: var(--accent-dark);
+        }
+
+        .dropzone-icon {
+            font-size: 2rem;
+            color: var(--accent-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .dropzone-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .dropzone-subtext {
+            font-size: 0.775rem;
+            color: #7a6e65;
+        }
+
+        .file-status {
+            margin-top: 0.5rem;
+            font-size: 0.825rem;
+            color: var(--accent-dark);
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        /* Table & Action Section */
+        .table-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .btn-primary, .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 40px;
+            padding: 0 16px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-dark);
+            color: var(--accent-light);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--hover-wine);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--accent-dark);
+            color: var(--accent-dark);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f5f2ed;
+        }
+
+        .table-container {
+            width: 100%;
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.825rem;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background-color: var(--accent-dark);
+            color: var(--accent-light);
+            font-weight: 600;
+            padding: 10px 12px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        td {
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: #ffffff;
+            color: var(--text-main);
+        }
+
+        tr:nth-child(even) td {
+            background-color: #fdfbf7;
+        }
+
+        .table-input {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background: transparent;
+            font-size: 0.825rem;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        .table-input:focus, .table-input:hover {
+            border-color: var(--input-border);
+            background-color: #ffffff;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #a33333;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background-color: #fbebeb;
+        }
+
+        /* Toast Popup */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--accent-dark);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-container">
+        <!-- Modal Title Header -->
+        <div class="modal-header">
+            <h1 class="modal-title">Classlist Formatter</h1>
+            <p class="modal-subtitle">Convert "Lastname, Firstname" into standardized CSV columns</p>
+        </div>
+
+        <!-- Configuration Form Grid -->
+        <div class="config-grid">
+            <div class="form-group">
+                <label class="form-label" for="courseInput">Course & Section</label>
+                <input type="text" id="courseInput" class="marca-input" placeholder="e.g. BSN-A" value="BSN-A" oninput="updateAllCourseSection()">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="yearInput">Year Level</label>
+                <input type="text" id="yearInput" class="marca-input" placeholder="e.g. 3" value="3" oninput="updateAllYearLevels()">
+            </div>
+        </div>
+
+        <!-- File Upload Dropzone -->
+        <div class="dropzone-area" id="dropzone" onclick="document.getElementById('fileInput').click()">
+            <i class="fa-solid fa-file-excel dropzone-icon"></i>
+            <div class="dropzone-text">Click or Drag & Drop File</div>
+            <div class="dropzone-subtext">Upload CSV or XLSX file</div>
+            <div class="file-status" id="fileStatus">No file selected</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileSelect(event)">
+
+        <!-- Optional Sheet Selector -->
+        <div class="form-group" id="sheetGroup" style="display: none;">
+            <label class="form-label" for="sheetSelect">Workbook Sheet</label>
+            <select id="sheetSelect" class="marca-input" onchange="processCurrentSheet()">
+            </select>
+        </div>
+
+        <!-- Data Preview & Export Bar -->
+        <div class="table-section">
+            <div class="action-bar">
+                <button class="btn-secondary" onclick="addNewRow()">
+                    <i class="fa-solid fa-plus"></i> Add Entry
+                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary" onclick="copyCSVToClipboard()">
+                        <i class="fa-solid fa-copy"></i> Copy CSV
+                    </button>
+                    <button class="btn-primary" onclick="triggerCSVDownload()">
+                        <i class="fa-solid fa-download"></i> Download Goal CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Table -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>email</th>
+                            <th>first_name</th>
+                            <th>last_name</th>
+                            <th>student_id</th>
+                            <th>course</th>
+                            <th>year_level</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: #887b70;">
+                                Import a file to preview parsed results.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">Action completed.</span>
+    </div>
+
+    <script>
+        // Polyfill fallback for PapaParse if CDN script fails or is blocked by sandbox
+        if (typeof window.Papa === 'undefined') {
+            window.Papa = {
+                parse: function(file, config) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const text = e.target.result;
+                        const lines = text.split(/\r\n|\n|\r/);
+                        const data = lines.map(line => {
+                            const result = [];
+                            let cur = '';
+                            let inQuotes = false;
+                            for (let i = 0; i < line.length; i++) {
+                                const char = line[i];
+                                if (char === '"') {
+                                    if (inQuotes && line[i + 1] === '"') {
+                                        cur += '"';
+                                        i++;
+                                    } else {
+                                        inQuotes = !inQuotes;
+                                    }
+                                } else if (char === ',' && !inQuotes) {
+                                    result.push(cur);
+                                    cur = '';
+                                } else {
+                                    cur += char;
+                                }
+                            }
+                            result.push(cur);
+                            return result;
+                        }).filter(row => !config.skipEmptyLines || row.some(cell => String(cell).trim() !== ''));
+
+                        if (config.complete) {
+                            config.complete({ data: data });
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+                unparse: function(obj) {
+                    const fields = (obj && obj.fields) || [];
+                    const data = (obj && obj.data) || [];
+
+                    const escapeCell = (val) => {
+                        let str = String(val == null ? '' : val);
+                        if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+                            str = '"' + str.replace(/"/g, '""') + '"';
+                        }
+                        return str;
+                    };
+
+                    const headerLine = fields.map(escapeCell).join(',');
+                    const rowLines = data.map(row => row.map(escapeCell).join(','));
+                    return [headerLine, ...rowLines].join('\r\n');
+                }
+            };
+        }
+
+        let workbookData = null;
+        let parsedRows = [];
+
+        const dropzone = document.getElementById('dropzone');
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                document.getElementById('fileInput').files = files;
+                handleFileSelect({ target: { files: files } });
+            }
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileStatus').textContent = file.name;
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            if (ext === 'csv') {
+                Papa.parse(file, {
+                    header: false,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        workbookData = {
+                            SheetNames: ['CLASSLIST'],
+                            Sheets: {
+                                'CLASSLIST': XLSX.utils.aoa_to_sheet(results.data)
+                            }
+                        };
+                        updateSheetDropdown(['CLASSLIST']);
+                        processCurrentSheet();
+                    }
+                });
+            } else {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    workbookData = XLSX.read(data, { type: 'array' });
+                    updateSheetDropdown(workbookData.SheetNames);
+                    processCurrentSheet();
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function updateSheetDropdown(sheetNames) {
+            const select = document.getElementById('sheetSelect');
+            const group = document.getElementById('sheetGroup');
+            select.innerHTML = '';
+
+            let targetSheet = sheetNames.find(s => s.toUpperCase() === 'CLASSLIST') || sheetNames[0];
+
+            if (sheetNames.length > 1) {
+                group.style.display = 'flex';
+            } else {
+                group.style.display = 'none';
+            }
+
+            sheetNames.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                if (name === targetSheet) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        /**
+         * Parses "Lastname, Firstname" format into first_name and last_name
+         */
+        function parseName(raw) {
+            if (!raw) return { firstName: '', lastName: '' };
+            const str = String(raw).trim();
+
+            if (str.includes(',')) {
+                const parts = str.split(',');
+                const lastName = parts[0].trim();
+                const firstName = parts.slice(1).join(',').trim();
+                return { firstName, lastName };
+            }
+
+            const tokens = str.split(/\s+/);
+            if (tokens.length === 1) return { firstName: tokens[0], lastName: '' };
+
+            const lastName = tokens.shift();
+            const firstName = tokens.join(' ');
+            return { firstName, lastName };
+        }
+
+        function processCurrentSheet() {
+            if (!workbookData) return;
+
+            const sheetName = document.getElementById('sheetSelect').value || workbookData.SheetNames[0];
+            const worksheet = workbookData.Sheets[sheetName];
+            if (!worksheet) return;
+
+            const jsonMatrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+            parsedRows = [];
+            const userCourse = document.getElementById('courseInput').value.trim();
+            const userYear = document.getElementById('yearInput').value.trim();
+
+            let emailIdx = -1, nameIdx = -1, idIdx = -1, firstIdx = -1, lastIdx = -1;
+            let startRowIndex = 0;
+
+            // Scan headers (First 10 rows)
+            for (let r = 0; r < Math.min(jsonMatrix.length, 10); r++) {
+                const row = jsonMatrix[r].map(c => String(c).toLowerCase().trim());
+                row.forEach((cell, colIdx) => {
+                    if (cell.includes('email') || cell.includes('mail')) emailIdx = colIdx;
+                    if (cell.includes('name') && !cell.includes('first') && !cell.includes('last')) nameIdx = colIdx;
+                    if (cell.includes('first')) firstIdx = colIdx;
+                    if (cell.includes('last')) lastIdx = colIdx;
+                    if (cell.includes('id') || cell.includes('student') || cell.includes('number') || cell.includes('lrn')) idIdx = colIdx;
+                });
+
+                if (nameIdx !== -1 || emailIdx !== -1 || (firstIdx !== -1 && lastIdx !== -1)) {
+                    startRowIndex = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRowIndex; i < jsonMatrix.length; i++) {
+                const row = jsonMatrix[i];
+                if (!row || row.length === 0 || row.every(c => String(c).trim() === '')) continue;
+
+                let email = emailIdx !== -1 ? String(row[emailIdx] || '').trim() : '';
+                let studentId = idIdx !== -1 ? String(row[idIdx] || '').trim() : '';
+                let firstName = '';
+                let lastName = '';
+
+                if (nameIdx !== -1 && row[nameIdx]) {
+                    const parsed = parseName(row[nameIdx]);
+                    firstName = parsed.firstName;
+                    lastName = parsed.lastName;
+                } else if (firstIdx !== -1 || lastIdx !== -1) {
+                    firstName = firstIdx !== -1 ? String(row[firstIdx] || '').trim() : '';
+                    lastName = lastIdx !== -1 ? String(row[lastIdx] || '').trim() : '';
+                } else {
+                    for (let c = 0; c < row.length; c++) {
+                        if (c !== emailIdx && c !== idIdx) {
+                            const val = String(row[c]).trim();
+                            if (val.includes(',')) {
+                                const parsed = parseName(val);
+                                firstName = parsed.firstName;
+                                lastName = parsed.lastName;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Header check safeguard
+                if (firstName.toLowerCase() === 'first_name' || lastName.toLowerCase() === 'last_name') continue;
+
+                if (firstName || lastName || email || studentId) {
+                    parsedRows.push({
+                        email: email,
+                        first_name: firstName,
+                        last_name: lastName,
+                        student_id: studentId,
+                        course: userCourse,
+                        year_level: userYear
+                    });
+                }
+            }
+
+            renderTable();
+            showToast(`Loaded ${parsedRows.length} entries.`);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+
+            if (parsedRows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #887b70;">
+                            Import a file to preview parsed results.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            parsedRows.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><input type="text" class="table-input" value="${escapeHtml(row.email)}" onchange="updateRow(${index}, 'email', this.value)"></td>
+                    <td><input type="text" class="table-input" value="${escapeHtml(row.first_name)}" onchange="updateRow(${index}, 'first_name', this.value)"></td>
+                    <td><input type="text" class="table-input" value="${escapeHtml(row.last_name)}" onchange="updateRow(${index}, 'last_name', this.value)"></td>
+                    <td><input type="text" class="table-input" value="${escapeHtml(row.student_id)}" onchange="updateRow(${index}, 'student_id', this.value)"></td>
+                    <td><input type="text" class="table-input" style="width: 80px;" value="${escapeHtml(row.course)}" onchange="updateRow(${index}, 'course', this.value)"></td>
+                    <td><input type="text" class="table-input" style="width: 45px;" value="${escapeHtml(row.year_level)}" onchange="updateRow(${index}, 'year_level', this.value)"></td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteRow(${index})" title="Delete Entry">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function updateRow(index, field, value) {
+            parsedRows[index][field] = value;
+        }
+
+        function deleteRow(index) {
+            parsedRows.splice(index, 1);
+            renderTable();
+            showToast("Entry removed.");
+        }
+
+        function addNewRow() {
+            parsedRows.push({
+                email: '',
+                first_name: '',
+                last_name: '',
+                student_id: '',
+                course: document.getElementById('courseInput').value || 'BSN-A',
+                year_level: document.getElementById('yearInput').value || '3'
+            });
+            renderTable();
+            showToast("New entry added.");
+        }
+
+        function updateAllCourseSection() {
+            const val = document.getElementById('courseInput').value;
+            parsedRows.forEach(r => r.course = val);
+            renderTable();
+        }
+
+        function updateAllYearLevels() {
+            const val = document.getElementById('yearInput').value;
+            parsedRows.forEach(r => r.year_level = val);
+            renderTable();
+        }
+
+        function generateCSVString() {
+            const headers = ['email', 'first_name', 'last_name', 'student_id', 'course', 'year_level'];
+            const rows = parsedRows.map(r => [
+                r.email || '',
+                r.first_name || '',
+                r.last_name || '',
+                r.student_id || '',
+                r.course || '',
+                r.year_level || ''
+            ]);
+
+            if (window.Papa && typeof window.Papa.unparse === 'function') {
+                return window.Papa.unparse({
+                    fields: headers,
+                    data: rows
+                });
+            }
+
+            // Secondary native CSV generator fallback
+            const escapeCell = (val) => {
+                let str = String(val == null ? '' : val);
+                if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+                    str = '"' + str.replace(/"/g, '""') + '"';
+                }
+                return str;
+            };
+
+            const headerLine = headers.map(escapeCell).join(',');
+            const rowLines = rows.map(row => row.map(escapeCell).join(','));
+            return [headerLine, ...rowLines].join('\r\n');
+        }
+
+        function triggerCSVDownload() {
+            if (parsedRows.length === 0) {
+                showToast("No records available to export!");
+                return;
+            }
+
+            const csvContent = generateCSVString();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            const filename = (document.getElementById('courseInput').value || 'Classlist') + '_Formatted.csv';
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("CSV file exported successfully!");
+        }
+
+        function copyCSVToClipboard() {
+            if (parsedRows.length === 0) {
+                showToast("No records available to copy!");
+                return;
+            }
+
+            const csvContent = generateCSVString();
+            const textarea = document.createElement('textarea');
+            textarea.value = csvContent;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            showToast("Copied to clipboard!");
+        }
+    </script>
+</body>
+</html>
