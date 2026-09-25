@@ -32,7 +32,7 @@
 } 
 
 body { 
-  background-color: var(--bg-color); 
+  background-color: var(--hover-wine); 
   color: var(--text-main); 
   font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
   min-height: 100vh; 
