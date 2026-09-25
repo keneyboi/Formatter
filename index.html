@@ -22,7 +22,7 @@
         <!-- Modal Title Header -->
         <div class="modal-header">
             <h1 class="modal-title">Classlist Formatter for UC-Banilad</h1>
-            <p class="modal-subtitle">Convert CSV or XLSX into Marca Format</p>
+            <p class="modal-subtitle">Convert CSV or XLSX into Marca Format - Requested by: Lara Gabuya</p>
         </div>
 
         <!-- Configuration Form Grid -->
@@ -40,7 +40,6 @@
 
         <!-- File Upload Dropzone -->
         <div class="dropzone-area" id="dropzone" onclick="document.getElementById('fileInput').click()">
-            <div class="dropzone-text">Click or Drag & Drop File</div>
             <div class="dropzone-subtext">Upload CSV or XLSX file</div>
             <div class="file-status" id="fileStatus">No file selected</div>
         </div>
@@ -56,16 +55,10 @@
         <!-- Data Preview & Export Bar -->
         <div class="table-section">
             <div class="action-bar">
-                <button class="btn-secondary" onclick="addNewRow()">
-                    <i class="fa-solid fa-plus"></i> Add Entry
-                </button>
+                <button class="btn-secondary" onclick="addNewRow()">Add Entry</button>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn-secondary" onclick="copyCSVToClipboard()">
-                        <i class="fa-solid fa-copy"></i> Copy CSV
-                    </button>
-                    <button class="btn-primary" onclick="triggerCSVDownload()">
-                        <i class="fa-solid fa-download"></i> Download Goal CSV
-                    </button>
+                    <button class="btn-secondary" onclick="copyCSVToClipboard()">Copy CSV</button>
+                    <button class="btn-primary" onclick="triggerCSVDownload()">Download Goal CSV</button>
                 </div>
             </div>
 
